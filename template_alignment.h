@@ -115,57 +115,6 @@ class StandardTrans
   ~StandardTrans(){}
 };
 
-namespace {
-template <typename T,
-          typename = std::enable_if_t<(std::is_same<T, mmind::eye::PointCloud>::value ||
-                                       std::is_same<T, mmind::eye::TexturedPointCloud>::value)>>
-bool containsInvalidPoint(const T& cloud)
-{
-    return std::any_of(
-        cloud.data(), cloud.data() + cloud.width() * cloud.height() - 1, [](const auto& point) {
-            return std::isnan(point.x) || std::isnan(point.y) || std::isnan(point.z) ||
-                   std::isinf(point.x) || std::isinf(point.y) || std::isinf(point.z);
-        });
-}
-
-pcl::PCLPointField createPointField(const std::string& name, uint32_t offset, uint8_t datatype,
-                                    uint32_t count)
-{
-    pcl::PCLPointField field;
-    field.name = name;
-    field.offset = offset;
-    field.datatype = datatype;
-    field.count = count;
-    return field;
-}
-
-void convertToPCL(const mmind::eye::PointCloud& cloud,
-                  pcl::PointCloud<pcl::PointXYZ>& pclPointCloud)
-{
-    pcl::PCLPointCloud2 pclCloud2;
-    pclCloud2.height = cloud.height();
-    pclCloud2.width = cloud.width();
-    pclCloud2.point_step = sizeof(mmind::eye::PointXYZ);
-    pclCloud2.row_step = sizeof(mmind::eye::PointXYZ) * cloud.width();
-    pclCloud2.is_dense = !containsInvalidPoint<mmind::eye::PointCloud>(cloud);
-
-    pclCloud2.fields.reserve(3);
-    pclCloud2.fields.push_back(createPointField("x", offsetof(mmind::eye::PointXYZ, x),
-                                                pcl::PCLPointField::PointFieldTypes::FLOAT32, 1));
-    pclCloud2.fields.push_back(createPointField("y", offsetof(mmind::eye::PointXYZ, y),
-                                                pcl::PCLPointField::PointFieldTypes::FLOAT32, 1));
-    pclCloud2.fields.push_back(createPointField("z", offsetof(mmind::eye::PointXYZ, z),
-                                                pcl::PCLPointField::PointFieldTypes::FLOAT32, 1));
-
-    pclCloud2.data.resize(pclCloud2.row_step * cloud.height());
-    memcpy(pclCloud2.data.data(),
-           reinterpret_cast<uint8_t*>(const_cast<mmind::eye::PointXYZ*>(cloud.data())),
-           (pclCloud2.row_step * cloud.height()));
-    pcl::fromPCLPointCloud2(pclCloud2, pclPointCloud);
-    return;
-}
-}
-
 class FeatureCloud
 {
     public:
