@@ -1,14 +1,11 @@
 import ctypes
 import cv2
-import numpy as np
-
 from scipy.spatial.transform import Rotation
-
-import math
-
 from time import sleep
 import socket
 import threading
+
+from cpt_dtc_convert import Mapping2DImageToDepthMap
 
 class Py2Cpp(ctypes.Structure):
     _fields_ = [
@@ -110,12 +107,11 @@ if __name__ == '__main__':
             cv2.waitKey(500)
             continue
 
-        euler = [rec_list[4], rec_list[5], rec_list[6]]
-        quat = Rotation.from_euler('ZYX', euler, degrees=False).as_quat()
-
+        # euler = [rec_list[4], rec_list[5], rec_list[6]]
+        # quat = Rotation.from_euler('ZYX', euler, degrees=False).as_quat()
 
         # send end pose to cpp
-        print(rec_list[1], rec_list[2], rec_list[3])
+        # print(rec_list[1], rec_list[2], rec_list[3])
         py2cpp = Py2Cpp(b"/home/zju/realsense_ws/template_pcd/template_list.txt", \
                         rec_list[1], rec_list[2], rec_list[3], \
                         rec_list[4], rec_list[5], rec_list[6], rec_list[7])
@@ -123,8 +119,10 @@ if __name__ == '__main__':
         so.set_py2cpp(ctypes.byref(py2cpp))
 
         # save point cloud from depth image as pcd file
+        point_cloud_file = "detect_pc.pcd"
+        Mapping2DImageToDepthMap(point_cloud_file)
         print("Aligning the target to template ...")
-        so.TemplateAlign(b"/home/zju/Yolov8/python/output.pcd")
+        so.TemplateAlign(b"/home/zju/Mech-Mind-Samples/yolomech/python/"+point_cloud_file)
         break
     
     # get results from cpp
