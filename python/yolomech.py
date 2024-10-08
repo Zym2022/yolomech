@@ -4,6 +4,8 @@ import numpy as np
 
 from scipy.spatial.transform import Rotation
 
+import math
+
 from time import sleep
 import socket
 import threading
@@ -35,7 +37,7 @@ class Var2Py(ctypes.Structure):
     ]
 
 pub_list = [0, 0, 0, 0, 0, 0, 0, 0]
-rec_list = [0, 0.7012980580329895, -0.07049023151397705, 0.2880822420120239, -0.0182997, 0.9125856, 0.0081999, 0.4083936]
+rec_list = [0, 0.48331189155578613, -0.0859934613108635, 0.3883483111858368, -0.0303883, -0.9994133, 0.0010912, -0.015764]
 state = -2
 recieved = 0
 
@@ -63,7 +65,7 @@ def udp_client(s):
         recv_data = s.recvfrom(1024)
         # print("[From %s:%d]:%s" % (recv_data[1][0], recv_data[1][1], recv_data[0].decode("utf-8")))
         rec_list =  [float(x) for x in recv_data[0].split()]
-        sleep(1)
+        sleep(1.0)
 
 
 if __name__ == '__main__':
@@ -101,6 +103,8 @@ if __name__ == '__main__':
         # if camera_xyz[-1] < 250:
         pub_list[0] = 0
 
+        sleep(2)
+
         # check if the robot has stopped
         if rec_list[0] != -1:
             cv2.waitKey(500)
@@ -128,10 +132,10 @@ if __name__ == '__main__':
     var2py_ptr = so.get_var2py()
     var2py = var2py_ptr.contents
     
-    # pub_list = [2, round(var2py.px, 4), round(var2py.py, 4), round(var2py.pz, 4), \
-    #             round(var2py.qx, 4), round(var2py.qy, 4), round(var2py.qz, 4), round(var2py.qw, 4)]
     pub_list = [2, round(var2py.px, 4), round(var2py.py, 4), round(var2py.pz, 4), \
-                0, 0.9238915, 0, 0.3826545 ]
+                round(var2py.qx, 4), round(var2py.qy, 4), round(var2py.qz, 4), round(var2py.qw, 4)]
+    # pub_list = [2, round(var2py.px, 4), round(var2py.py, 4), round(var2py.pz, 4), \
+    #             0.        , 0.76604444, 0.        , 0.64278761]
 
     # continue to send messages to robot
     while True:

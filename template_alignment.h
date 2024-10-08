@@ -89,18 +89,18 @@ class StandardTrans
                         -0.0021383, -0.0196502,  0.9998046, 0.111187,
                         0, 0, 0, 1;
                         
-    trans_end2base << -0.6657596, -0.0400977,  0.7450881, 0.6952189803123474,
-                      -0.0267026,  0.9991958,  0.0299131, -0.12239932268857956,
-                      -0.7456883,  0.0000192, -0.6662949, 0.28807103633880615,
+    trans_end2base << -0.9976561,  0.0607754,  0.0314433, 0.4833117127418518,
+                      0.0607066,  0.9981507, -0.0031392, -0.08599357306957245,
+                      -0.0315759, -0.0012230, -0.9995006, 0.38834860920906067,
                       0.0, 0.0, 0.0, 1.0;
 
-    float hole_position_x = 0.9609524607658386;
-    float hole_position_y = -0.32439371943473816;
-    float hole_position_z = 0.1154015064239502;
-    float hole_orientation_x = -0.001470066956244409;
-    float hole_orientation_y = -0.00021142831246834248;
-    float hole_orientation_z = 0.012998884543776512;
-    float hole_orientation_w = 0.9999144077301025;
+    float hole_position_x = 0.4673495292663574;
+    float hole_position_y = -0.2759052515029907;
+    float hole_position_z = 0.014714655466377735;
+    float hole_orientation_x = -0.03615063056349754;
+    float hole_orientation_y = -0.9992843270301819;
+    float hole_orientation_z = 0.011121641844511032;
+    float hole_orientation_w = -0.0005029244930483401;
     
     trans_hole2world = Eigen::Matrix4f::Identity();
     Eigen::Quaternionf quat_hole2world(hole_orientation_w, hole_orientation_x, hole_orientation_y, hole_orientation_z);

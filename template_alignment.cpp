@@ -41,7 +41,7 @@ TemplateAlign(char* target_pcd_path)
 
   // Set the exposure times for acquiring depth information.
   showError(currentUserSet.setFloatArrayValue(
-      mmind::eye::scanning3d_setting::ExposureSequence::name, std::vector<double>{20}));
+      mmind::eye::scanning3d_setting::ExposureSequence::name, std::vector<double>{20, 10}));
   //    showError(currentUserSet.setFloatArrayValue(
   //        mmind::eye::scanning3d_setting::ExposureSequence::name, std::vector<double>{5, 10}));
 
@@ -68,7 +68,7 @@ TemplateAlign(char* target_pcd_path)
 
   // Preprocess the cloud by...
   // ...removing distant points
-  const float depth_limit = 0.35;
+  const float depth_limit = 0.4;
   pcl::PassThrough<pcl::PointXYZ> pass;
   pass.setInputCloud (pointCloudPCL.makeShared());
   pass.setFilterFieldName ("z");
@@ -78,13 +78,13 @@ TemplateAlign(char* target_pcd_path)
   pcl::PassThrough<pcl::PointXYZ> pass_x;
   pass_x.setInputCloud(cloud);
   pass_x.setFilterFieldName("x");
-  pass_x.setFilterLimits(-0.3, 0.15);
+  pass_x.setFilterLimits(-0.15, 0.35);
   pass_x.filter(*cloud);
 
   pcl::PassThrough<pcl::PointXYZ> pass_y;
   pass_y.setInputCloud(cloud);
   pass_y.setFilterFieldName("y");
-  pass_y.setFilterLimits(-0.2, 0.2);
+  pass_y.setFilterLimits(-0.1, 0.5);
   pass_y.filter(*cloud);
 
   // ... and downsampling the point cloud
@@ -197,17 +197,17 @@ TemplateAlign(char* target_pcd_path)
 
   // for icp
   Eigen::Matrix4f tempR;
-  tempR  << 0.8660254, -0.5000000,  0.0000000, 0.0,
-            0.5000000,  0.8660254,  0.0000000, 0.0,
+  tempR  << 0.9659258, -0.2588190,  0.0000000, 0.0,
+            0.2588190,  0.9659258,  0.0000000, 0.0,
             0.0000000,  0.0000000,  1.0000000, 0.0,
             0.0,        0.0,        0.0,       1.0;
-  Eigen::Matrix4f icp_init = best_alignment.final_transformation;
+  Eigen::Matrix4f icp_init = icp.getFinalTransformation();
   double icp_best_score = icp.getFitnessScore();
   Eigen::Matrix4f icp_best_trans = icp.getFinalTransformation();
 
-  if (icp_best_score > 0.000006) {
+  if (icp_best_score > 0.000005) {
 
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 24; i++) {
       icp_init = icp_init * tempR;
       icp.align(*unused_result, icp_init);
       printf ("icp iter %d fitness score: %f\n", i, icp.getFitnessScore());
@@ -217,12 +217,16 @@ TemplateAlign(char* target_pcd_path)
           icp_best_score = icp.getFitnessScore();
           icp_best_trans = icp.getFinalTransformation();
       }
-      if (icp_best_score <= 0.000006) break;
+      if (icp_best_score <= 0.000005) break;
 
     }  
   }
 
   trans_target2camera = icp_best_trans * standardtrans_.trans_hole2camera;
+  printf ("\n");
+  printf ("hole to base from template estimation: \n");
+  std::cout << trans_target2camera << std::endl;
+  printf ("\n");
   // Eigen::Matrix4f trans_target2camera = best_alignment.final_transformation * standardtrans_.trans_hole2camera;
   ////////////////////////////////////////////////////
   trans_target2base = trans_end2base * standardtrans_.trans_camera2end * trans_target2camera;
@@ -240,7 +244,7 @@ TemplateAlign(char* target_pcd_path)
   printf ("\n");
   printf ("t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
 
-  Eigen::AngleAxisf rotationV(M_PI*3/4, Eigen::Vector3f(0, 1, 0));
+  Eigen::AngleAxisf rotationV(0, Eigen::Vector3f(0, 1, 0));
   Eigen::Matrix4f rotationMatrix = Eigen::Matrix4f::Identity();
   rotationMatrix.block<3, 3>(0, 0) = rotationV.toRotationMatrix();
   Eigen::Matrix4f Result = trans_target2base * rotationMatrix;
@@ -266,13 +270,13 @@ TemplateAlign(char* target_pcd_path)
   var2py_.qz = quat_result.z();
   var2py_.qw = quat_result.w();
 
-  float hole_position_x_val = 0.8512406349182129;
-  float hole_position_y_val = -0.25122395157814026;
-  float hole_position_z_val = 0.11654185503721237;
-  float hole_orientation_x_val = -0.0007885838858783245;
-  float hole_orientation_y_val = -0.0004437979368958622;
-  float hole_orientation_z_val = 0.00925495009869337;
-  float hole_orientation_w_val = 0.9999568462371826;
+  float hole_position_x_val = 0.728864848613739;
+  float hole_position_y_val = -0.28153127431869507;
+  float hole_position_z_val = 0.11900459975004196;
+  float hole_orientation_x_val = -0.9327642917633057;
+  float hole_orientation_y_val = -0.0017601799918338656;
+  float hole_orientation_z_val = -0.35992735624313354;
+  float hole_orientation_w_val = 0.019999029114842415;
 
   Eigen::Matrix4f trans_hole2world_val = Eigen::Matrix4f::Identity();
   Eigen::Quaternionf quat_hole2world_val(hole_orientation_w_val, hole_orientation_x_val, hole_orientation_y_val, hole_orientation_z_val);
