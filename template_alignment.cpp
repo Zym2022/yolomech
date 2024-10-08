@@ -23,69 +23,28 @@ TemplateAlign(char* target_pcd_path)
 
   // load the traget cloud PCD file
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
-  // pcl::io::loadPCDFile(target_pcd_path,*cloud);
-
-  mmind::eye::Camera camera;
-  if (!findAndConnect(camera))
-    {
-      std::cout << "ERROR: Can't find camera";
-      return;
-    }
-
-  if (!confirmCapture3D()) {
-      camera.disconnect();
-      return;
-  }
-
-  mmind::eye::UserSet& currentUserSet = camera.currentUserSet();
-
-  // Set the exposure times for acquiring depth information.
-  showError(currentUserSet.setFloatArrayValue(
-      mmind::eye::scanning3d_setting::ExposureSequence::name, std::vector<double>{20, 10}));
-  //    showError(currentUserSet.setFloatArrayValue(
-  //        mmind::eye::scanning3d_setting::ExposureSequence::name, std::vector<double>{5, 10}));
-
-  // Obtain the current exposure times for acquiring depth information to check if the setting was
-  // successful.
-  std::vector<double> exposureSequence;
-  showError(currentUserSet.getFloatArrayValue(
-      mmind::eye::scanning3d_setting::ExposureSequence::name, exposureSequence));
-  std::cout << "3D scanning exposure multiplier : " << exposureSequence.size() << "."
-            << std::endl;
-  for (size_t i = 0; i < exposureSequence.size(); i++) {
-      std::cout << "3D scanning exposure time " << i + 1 << ": " << exposureSequence[i] << " ms."
-                << std::endl;
-  }
-
-  camera.setPointCloudUnit(mmind::eye::CoordinateUnit::Meter);
-  mmind::eye::Frame2DAnd3D frame2DAnd3D;
-  showError(camera.capture2DAnd3D(frame2DAnd3D));
-
-  const mmind::eye::PointCloud pointCloud = frame2DAnd3D.frame3D().getUntexturedPointCloud();
-
-  pcl::PointCloud<pcl::PointXYZ> pointCloudPCL(pointCloud.width(), pointCloud.height());
-  convertToPCL(pointCloud, pointCloudPCL);
+  pcl::io::loadPCDFile(target_pcd_path,*cloud);
 
   // Preprocess the cloud by...
   // ...removing distant points
   const float depth_limit = 0.4;
   pcl::PassThrough<pcl::PointXYZ> pass;
-  pass.setInputCloud (pointCloudPCL.makeShared());
+  pass.setInputCloud (cloud);
   pass.setFilterFieldName ("z");
   pass.setFilterLimits (0, depth_limit);
   pass.filter (*cloud);
 
-  pcl::PassThrough<pcl::PointXYZ> pass_x;
-  pass_x.setInputCloud(cloud);
-  pass_x.setFilterFieldName("x");
-  pass_x.setFilterLimits(-0.15, 0.35);
-  pass_x.filter(*cloud);
+  // pcl::PassThrough<pcl::PointXYZ> pass_x;
+  // pass_x.setInputCloud(cloud);
+  // pass_x.setFilterFieldName("x");
+  // pass_x.setFilterLimits(-0.15, 0.35);
+  // pass_x.filter(*cloud);
 
-  pcl::PassThrough<pcl::PointXYZ> pass_y;
-  pass_y.setInputCloud(cloud);
-  pass_y.setFilterFieldName("y");
-  pass_y.setFilterLimits(-0.1, 0.5);
-  pass_y.filter(*cloud);
+  // pcl::PassThrough<pcl::PointXYZ> pass_y;
+  // pass_y.setInputCloud(cloud);
+  // pass_y.setFilterFieldName("y");
+  // pass_y.setFilterLimits(-0.1, 0.5);
+  // pass_y.filter(*cloud);
 
   // ... and downsampling the point cloud
   const float voxel_grid_size = 0.002f;
