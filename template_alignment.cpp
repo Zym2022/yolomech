@@ -154,8 +154,8 @@ TemplateAlign(char* target_pcd_path)
   printf ("t = < %0.3f, %0.3f, %0.3f >\n", translation (0), translation (1), translation (2));
   //////////////////////////////////////////////////
 
-  // for icp
-  Eigen::Matrix4f tempR;
+  // for icp 
+  Eigen::Matrix4f tempR; // 15 degree for search
   tempR  << 0.9659258, -0.2588190,  0.0000000, 0.0,
             0.2588190,  0.9659258,  0.0000000, 0.0,
             0.0000000,  0.0000000,  1.0000000, 0.0,
@@ -164,8 +164,17 @@ TemplateAlign(char* target_pcd_path)
   double icp_best_score = icp.getFitnessScore();
   Eigen::Matrix4f icp_best_trans = icp.getFinalTransformation();
 
-  if (icp_best_score > 0.000005) {
+  std::vector<double> result_scores(24);
+  std::vector<Eigen::Matrix4f> result_trans(24);
 
+  Eigen::AngleAxisf tempAA(M_PI/12, Eigen::Vector3f(0, 0, 1));
+  std::vector<Eigen::Matrix4f> init_trans(24);
+  for (int i = 0; i < 24; i++)
+  {
+    icp = 
+  }
+
+  if (icp_best_score > 0.000005) {
     for (int i = 0; i < 24; i++) {
       icp_init = icp_init * tempR;
       icp.align(*unused_result, icp_init);
@@ -177,7 +186,6 @@ TemplateAlign(char* target_pcd_path)
           icp_best_trans = icp.getFinalTransformation();
       }
       if (icp_best_score <= 0.000005) break;
-
     }  
   }
 
