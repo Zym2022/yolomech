@@ -1,4 +1,31 @@
-#include "template_alignment.h"
+#include "template_alignment.h" // [0.0, 0.9, -2.0, 0.0, 0.8, 0.0]
+
+struct ICPResult
+{
+  float fitness_score;
+  Eigen::Matrix4f final_transformation;
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+};
+
+void 
+icp_align(Eigen::Matrix4f icp_init, ICPResult &result, FeatureCloud best_template, FeatureCloud target_cloud)
+{
+  pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+  icp.setMaxCorrespondenceDistance(100);
+  icp.setMaximumIterations(100);
+  icp.setTransformationEpsilon(1e-6);
+  icp.setEuclideanFitnessEpsilon(1e-6);
+  icp.setRANSACIterations(0);
+
+  icp.setInputSource(best_template.getPointCloud());
+  icp.setInputTarget(target_cloud.getPointCloud());
+
+  pcl::PointCloud<pcl::PointXYZ> icp_output;
+  icp.align(icp_output, icp_init);
+
+  result.fitness_score = (float) icp.getFitnessScore();
+  result.final_transformation = icp.getFinalTransformation();
+}
 
 void
 TemplateAlign(char* target_pcd_path)
@@ -23,7 +50,10 @@ TemplateAlign(char* target_pcd_path)
 
   // load the traget cloud PCD file
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
+  std::cout << "traget pcd path: " << target_pcd_path << std::endl;
   pcl::io::loadPCDFile(target_pcd_path,*cloud);
+
+  std::cout << cloud->size() << std::endl; 
 
   // Preprocess the cloud by...
   // ...removing distant points
@@ -33,6 +63,8 @@ TemplateAlign(char* target_pcd_path)
   pass.setFilterFieldName ("z");
   pass.setFilterLimits (0, depth_limit);
   pass.filter (*cloud);
+
+  // std::cout << cloud->size() << std::endl; 
 
   // pcl::PassThrough<pcl::PointXYZ> pass_x;
   // pass_x.setInputCloud(cloud);
@@ -155,39 +187,117 @@ TemplateAlign(char* target_pcd_path)
   //////////////////////////////////////////////////
 
   // for icp 
-  Eigen::Matrix4f tempR; // 15 degree for search
-  tempR  << 0.9659258, -0.2588190,  0.0000000, 0.0,
-            0.2588190,  0.9659258,  0.0000000, 0.0,
-            0.0000000,  0.0000000,  1.0000000, 0.0,
-            0.0,        0.0,        0.0,       1.0;
   Eigen::Matrix4f icp_init = icp.getFinalTransformation();
   double icp_best_score = icp.getFitnessScore();
   Eigen::Matrix4f icp_best_trans = icp.getFinalTransformation();
 
-  std::vector<double> result_scores(24);
-  std::vector<Eigen::Matrix4f> result_trans(24);
+  // ------------------------ parallel-------------------//
+  // std::vector<double> result_scores;
+  // std::vector<Eigen::Matrix4f> result_trans;
 
+  // std::vector<pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ>> icp_vector;
+
+  // std::vector<pcl::PointCloud<pcl::PointXYZ>> unused_result_vector;
+  // Eigen::AngleAxisf tempAA(M_PI/12, Eigen::Vector3f(0, 0, 1));
+  // Eigen::Matrix4f tempM = Eigen::Matrix4f::Identity();
+  // tempM.block<3, 3>(0, 0) = tempAA.toRotationMatrix();
+  // std::vector<Eigen::Matrix4f> init_trans;
+  // for (int i = 0; i < 24; i++)
+  // {
+  //   init_trans.push_back(icp_init);
+  //   icp_init = icp_init * tempM;
+
+  //   pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+  //   icp.setMaxCorrespondenceDistance(100);
+  //   icp.setMaximumIterations(100);
+  //   icp.setTransformationEpsilon(1e-6);
+  //   icp.setEuclideanFitnessEpsilon(1e-6);
+  //   icp.setRANSACIterations(0);
+
+  //   icp.setInputSource(best_template.getPointCloud());
+  //   icp.setInputTarget(target_cloud.getPointCloud());
+
+  //   icp_vector.push_back(icp);
+  // }
+
+  // std::cout << icp_vector.size() << std::endl;
+
+  // tbb::parallel_for(0, int(icp_init.size()), [&](int i)
+  // {
+  //   std::cout << "fuck " << std::endl;
+  //   icp_vector[i].align(unused_result_vector[i], init_trans[i]);
+  //   std::cout << "fuck fuck" << std::endl;
+  // });
+  // std::cout << "!!!" << std::endl;
+
+  // for (int i = 0; i <24; i++)
+  // {
+  //   printf ("icp iter %d fitness score: %f\n", i, icp_vector[i].getFitnessScore());
+  //   if (icp_vector[i].getFitnessScore() < icp_best_score)
+  //   {
+  //     icp_best_score = icp_vector[i].getFitnessScore();
+  //     icp_best_trans = icp_vector[i].getFinalTransformation();
+  //   }
+  // }
+  // ------------------------ parallel-------------------//
+
+  // ---------------------tbb----------------------------//
   Eigen::AngleAxisf tempAA(M_PI/12, Eigen::Vector3f(0, 0, 1));
-  std::vector<Eigen::Matrix4f> init_trans(24);
+  Eigen::Matrix4f tempM = Eigen::Matrix4f::Identity();
+  tempM.block<3, 3>(0, 0) = tempAA.toRotationMatrix();
+  std::vector<Eigen::Matrix4f> init_trans;
   for (int i = 0; i < 24; i++)
   {
-    icp = 
+    init_trans.push_back(icp_init);
+    icp_init = icp_init * tempM;
   }
 
-  if (icp_best_score > 0.000005) {
-    for (int i = 0; i < 24; i++) {
-      icp_init = icp_init * tempR;
-      icp.align(*unused_result, icp_init);
-      printf ("icp iter %d fitness score: %f\n", i, icp.getFitnessScore());
+  std::vector<ICPResult, Eigen::aligned_allocator<ICPResult>> icp_results;
+  icp_results.resize(init_trans.size());
+  tbb::parallel_for(0, int(init_trans.size()), [&](int i)
+  {
+    icp_align(init_trans[i], icp_results[i], best_template, target_cloud);
+    printf ("icp iter %d fitness score: %f\n", i, icp_results[i].fitness_score);
+  });
 
-      if (icp.getFitnessScore() < icp_best_score) 
-      {
-          icp_best_score = icp.getFitnessScore();
-          icp_best_trans = icp.getFinalTransformation();
-      }
-      if (icp_best_score <= 0.000005) break;
-    }  
+  float lowest_score = icp_best_score;
+  int best_icp_index = 0;
+  for(size_t i = 0;i<icp_results.size();i++)
+  {
+    const ICPResult &r = icp_results[i];
+    if(r.fitness_score<lowest_score)
+    {
+      lowest_score = r.fitness_score;
+      best_icp_index = (int) i;
+    }
   }
+
+  icp_best_score = lowest_score;
+  icp_best_trans = icp_results[best_icp_index].final_transformation;
+
+  // ---------------------tbb----------------------------//
+
+  // -------------------- non-parallel-------------------//
+  // Eigen::Matrix4f tempR; // 15 degree for search
+  // tempR  << 0.9659258, -0.2588190,  0.0000000, 0.0,
+  //           0.2588190,  0.9659258,  0.0000000, 0.0,
+  //           0.0000000,  0.0000000,  1.0000000, 0.0,
+  //           0.0,        0.0,        0.0,       1.0;
+  // if (icp_best_score > 0.000005) {
+  //   for (int i = 0; i < 24; i++) {
+  //     icp_init = icp_init * tempR;
+  //     icp.align(*unused_result, icp_init);
+  //     printf ("icp iter %d fitness score: %f\n", i, icp.getFitnessScore());
+
+  //     if (icp.getFitnessScore() < icp_best_score) 
+  //     {
+  //         icp_best_score = icp.getFitnessScore();
+  //         icp_best_trans = icp.getFinalTransformation();
+  //     }
+  //     if (icp_best_score <= 0.000005) break;
+  //   }  
+  // }
+  // -------------------- non-parallel-------------------//
 
   trans_target2camera = icp_best_trans * standardtrans_.trans_hole2camera;
   printf ("\n");

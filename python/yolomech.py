@@ -120,9 +120,10 @@ if __name__ == '__main__':
 
         # save point cloud from depth image as pcd file
         point_cloud_file = "detect_pc.pcd"
-        Mapping2DImageToDepthMap(point_cloud_file)
+        a = Mapping2DImageToDepthMap(point_cloud_file)
+        a.main()
         print("Aligning the target to template ...")
-        so.TemplateAlign(b"/home/zju/Mech-Mind-Samples/yolomech/python/"+point_cloud_file)
+        so.TemplateAlign(b"/home/zju/Mech-Mind-Samples/yolomech/python/detect_pc.pcd")
         break
     
     # get results from cpp
